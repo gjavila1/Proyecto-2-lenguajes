@@ -162,12 +162,21 @@ def analyze(source: str):
 def index():
     if request.method == "GET":
         codigo = load_programa_txt(DEMO)
+        print("GET request - usando código demo")
     else:
         codigo = request.form.get("code", "")
+        print("POST request - código recibido:", codigo[:100], "...")  # Primeros 100 chars
 
+    # Debug de análisis
+    print("Iniciando análisis...")
     res = analyze(codigo)
+    
+    # Debug del resultado
+    print("Tokens:", len(res.get("tokens", [])))
+    print("Errores:", len(res.get("errores", [])))
+    print("Árbol generado:", bool(res.get("arbol_dot")))
+    print("Tabla de transición:", len(res.get("tabla_transicion", [])))
 
-    # Escribir archivos solo en POST
     if request.method == "POST":
         write_lines("out/errores.txt", res.get("errores") or [])
         write_lines("out/tabla_transicion.txt", res.get("tabla_transicion") or [])
@@ -183,7 +192,6 @@ def index():
         ast=res.get("ast_dot") or "",
         tabla=res.get("tabla_transicion") or []
     )
-
 @app.route("/download/errores")
 def download_errores():
     path = "out/errores.txt"

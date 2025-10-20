@@ -1,0 +1,16 @@
+Símbolo no reconocido '' (L1, C13)
+Símbolo no reconocido '' (L2, C9)
+Símbolo no reconocido '' (L3, C9)
+Símbolo no reconocido '' (L4, C1)
+Símbolo no reconocido '' (L5, C27)
+Símbolo no reconocido '' (L6, C18)
+Símbolo no reconocido '' (L7, C4)
+Símbolo no reconocido '' (L8, C1)
+Símbolo no reconocido '' (L9, C16)
+Símbolo no reconocido '' (L10, C25)
+Símbolo no reconocido '' (L11, C21)
+Símbolo no reconocido '' (L12, C12)
+Símbolo no reconocido '' (L13, C4)
+Sintáctico L5 C11: se esperaba ';' antes de '(' — sugerencia: inserta ';'
+Sintáctico L5 C11: no se puede derivar MemberList con '('. Saltando hasta sincronizar.
+Sintáctico L9 C3: tokens extra al final 'void'
