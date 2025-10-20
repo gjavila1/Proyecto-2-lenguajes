@@ -1,0 +1,228 @@
+<!-- templates/index.html -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Analizador LL(1) - Gerardo Avila - 2002824</title>
+
+<style>
+:root {
+  --bg: #0b0f0e;
+  --fg: #eafff3;
+  --card: rgba(255,255,255,.05);
+  --border: rgba(255,255,255,.1);
+  --accent: #4ef2b8;
+  --muted: #a6c3b2;
+  --err-bg: rgba(255, 80, 80, .15);
+  --err: #ff9a9a;
+  --chip-bg: rgba(255,255,255,.06);
+  --chip-border: rgba(255,255,255,.12);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter,system-ui,Segoe UI,Roboto,Arial;
+  background: radial-gradient(circle at 30% 10%, #091612 0%, #000605 90%);
+  color:var(--fg);
+  line-height:1.5;
+}
+.header{ text-align:center; padding:30px 12px 14px; position:relative; }
+.header h1{ margin:0; font-size:28px; font-weight:800; text-transform:uppercase; letter-spacing:1px; }
+.title-glow{ color:#4ef2b8; text-shadow:0 0 8px #4ef2b8,0 0 18px #4ef2b8,0 0 36px #4ef2b8; animation:glowPulse 3s infinite ease-in-out; }
+.name{ color:#ffffff; font-weight:700; }
+.code{ color:#93ffd9; font-weight:500; }
+@keyframes glowPulse{
+  0%,100%{ text-shadow:0 0 6px #4ef2b8,0 0 14px #4ef2b8,0 0 30px #4ef2b8; }
+  50%{ text-shadow:0 0 12px #7affca,0 0 25px #4ef2b8,0 0 45px #4ef2b8; }
+}
+.header .sub{ color:var(--muted); font-size:13px; margin-top:6px; letter-spacing:.4px }
+.parse-status{ position:relative; height:4px; width:280px; margin:18px auto 0; background:rgba(255,255,255,.08); border-radius:3px; overflow:hidden; }
+.parse-status .pulse{ position:absolute; left:0; top:0; width:40%; height:100%; background:linear-gradient(90deg,#00ffaa,#4ef2b8,#00ffaa); border-radius:3px; animation:loadFlow 2.8s infinite linear; }
+@keyframes loadFlow{ 0%{left:-40%} 50%{left:60%} 100%{left:100%} }
+.container{ display:grid; grid-template-columns:1.1fr 1fr; gap:18px; padding:18px; max-width:1200px; margin:0 auto; }
+.card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; backdrop-filter:blur(10px); }
+.section-title{ font-size:17px; font-weight:800; color:var(--accent); margin:0 0 10px; border-left:4px solid var(--accent); padding-left:8px; text-transform:uppercase; letter-spacing:.5px }
+textarea{
+  width:100%; height:360px; background:#08120e; color:var(--fg);
+  border:1px solid var(--border); border-radius:12px; padding:12px;
+  font-family:'JetBrains Mono',Consolas,monospace; font-size:13px;
+}
+button{
+  background:var(--accent); color:#001621; border:0; padding:10px 16px;
+  border-radius:10px; font-weight:700; cursor:pointer; transition:background .2s;
+}
+button:hover{ background:#6effc9 }
+.row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap }
+.small{ color:var(--muted); font-size:12px }
+.error{
+  background:var(--err-bg); color:var(--err);
+  border:1px solid rgba(255,0,60,.2); border-radius:12px; padding:12px 16px;
+}
+pre{
+  background:#08120e; border:1px solid var(--border); border-radius:10px;
+  padding:12px; overflow-x:auto; max-height:250px;
+  font-family:'JetBrains Mono',Consolas,monospace; font-size:12px;
+}
+a.dl{
+  color:var(--accent); text-decoration:none; border:1px solid var(--accent);
+  padding:6px 12px; border-radius:10px; font-size:13px;
+}
+a.dl:hover{ background:var(--accent); color:#001621 }
+.details{ border:1px solid var(--border); border-radius:10px; padding:10px; background:#08120e }
+</style>
+</head>
+
+<body>
+  <div class="header">
+    <h1>
+      <span class="title-glow">Analizador LL(1)</span> —
+      <span class="name">Gerardo Avila</span>
+      <span class="code">2002824</span>
+    </h1>
+    <div class="sub">Tokeniza · Construye tabla · Parsea · Genera Árbol · Reporta</div>
+    <div class="parse-status"><div class="pulse"></div></div>
+  </div>
+
+  <div class="container">
+    <!-- IZQUIERDA -->
+    <div class="card">
+      <div class="section-title">Código fuente</div>
+      <form method="post" action="/">
+        <textarea
+          id="codeArea"
+          name="code"
+          spellcheck="false"
+          placeholder="Pega tu programa en mini-Java aquí…"
+        >{{ codigo|default('', true) }}</textarea>
+        <div class="row" style="margin-top:10px">
+          <button type="submit">Analizar</button>
+          <span class="small">Usa <b>Ctrl/Cmd + Enter</b> para enviar</span>
+        </div>
+      </form>
+    </div>
+
+    <!-- DERECHA -->
+    <div class="card">
+      <div class="section-title">Resultado</div>
+
+      <!-- Consola -->
+      <p class="small"><b>Consola:</b></p>
+      {% if console %}
+        <pre>{{ console|e }}</pre>
+      {% else %}
+        <div class="small">Sin mensajes aún. Ejecuta un análisis.</div>
+      {% endif %}
+
+      <!-- Conflictos -->
+      <div class="section-title" style="font-size:15px;margin-top:18px;">Conflictos LL(1)</div>
+      {% set _conf = conflictos|default([], true) %}
+      {% if _conf and _conf|length > 0 %}
+        <div class="error">
+          <ul style="margin:6px 0 0 16px">
+            {% for c in _conf %}
+              <li>{{ c|e }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% else %}
+        <div class="small">0 conflictos.</div>
+      {% endif %}
+
+      <!-- Errores -->
+      <div class="section-title" style="font-size:15px;margin-top:18px;">Errores</div>
+      {% set _err = errores|default([], true) %}
+      {% if _err and _err|length > 0 %}
+        <div class="error">
+          <ul style="margin:6px 0 0 16px">
+            {% for e in _err %}
+              <li>{{ e|e }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% else %}
+        <div class="small">Sin errores léxicos/sintácticos.</div>
+      {% endif %}
+
+      <!-- Árbol -->
+      <div class="section-title" style="font-size:15px;margin-top:18px;">Árbol de derivación (.dot)</div>
+      {% if arbol %}
+        <details class="details">
+          <summary style="cursor:pointer;">Mostrar / Ocultar</summary>
+          <pre>{{ arbol|e }}</pre>
+        </details>
+      {% else %}
+        <div class="small">No se generó DOT del árbol.</div>
+      {% endif %}
+
+      <!-- AST (opcional) -->
+      {% if ast %}
+        <div class="section-title" style="font-size:15px;margin-top:18px;">AST (.dot)</div>
+        <details class="details">
+          <summary style="cursor:pointer;">Mostrar / Ocultar</summary>
+          <pre>{{ ast|e }}</pre>
+        </details>
+      {% endif %}
+
+      <!-- Descargas -->
+      <div class="row" style="margin-top:12px">
+        <a class="dl" href="/download/errores">Descargar errores.txt</a>
+        <a class="dl" href="/download/tabla">Descargar tabla_transicion.txt</a>
+        <a class="dl" href="/download/arbol">Descargar arbol.dot</a>
+        {% if ast %}<a class="dl" href="/download/ast">Descargar ast.dot</a>{% endif %}
+      </div>
+      <p class="small" style="margin-top:8px">Archivos se regeneran en cada análisis.</p>
+    </div>
+  </div>
+
+  <!-- Tabla de transición (vista rápida) -->
+  <div class="container" style="padding-top:0">
+    <div class="card">
+      <div class="section-title">Tabla de transición (vista rápida)</div>
+      {% set _tabla = tabla|default([], true) %}
+      {% if _tabla and _tabla|length > 0 %}
+        <pre>
+{% for row in _tabla %}{{ row|e }}
+{% endfor %}</pre>
+      {% else %}
+        <div class="small">Genera la tabla analizando el código.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script>
+    (function () {
+      const ta = document.getElementById('codeArea');
+      const form = ta?.closest('form');
+      const pulse = document.querySelector('.pulse');
+
+      if (form && pulse) {
+        form.addEventListener('submit', () => {
+          pulse.style.animation = 'loadFlow 1.2s infinite linear';
+          setTimeout(() => pulse.style.animation = 'loadFlow 2.8s infinite linear', 2200);
+        });
+      }
+      if (!ta) return;
+
+      // Usa el demo inicial para limpiar al enfocar solo si coincide
+      const demo = {{ codigo|default('', true)|tojson }};
+      let pristine = (ta.value === demo);
+
+      ta.addEventListener('focus', () => {
+        if (pristine && ta.value === demo) ta.value = '';
+      });
+      ta.addEventListener('input', () => { pristine = false; });
+      ta.addEventListener('blur', () => {
+        if (ta.value.trim() === '') {
+          ta.value = '';
+          ta.setAttribute('placeholder', 'Pega tu programa en mini-Java aquí…');
+        }
+      });
+      ta.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') form?.submit();
+      });
+    })();
+  </script>
+</body>
+</html>
